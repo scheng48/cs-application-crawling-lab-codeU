@@ -53,9 +53,41 @@ public class WikiCrawler {
 	 * @return Number of pages indexed.
 	 * @throws IOException
 	 */
+	/* Notes for method:
+	when testing is true:
+		choose and remove URL from queue in FIFO order
+		read contents of page using WikiFetcher.readWikipedia, which is included for testing purposes
+		index pages regardless of whether they're already indexed
+		find all internal links on page and add the to queue
+		return URL of page it indexed
+	when testing is false:
+		choose and remove URl from queue in FIFO order
+		if URL is already indexed, it doesn't index it again and returns null
+		otherwise, it reads contents of page using WikiFetcher.readWikipedia,
+		and then indexes the page and returns the URL
+
+	*/
 	public String crawl(boolean testing) throws IOException {
-        // FILL THIS IN!
-		return null;
+        if (queue.isEmpty()) {
+        	return null;
+        }
+
+        String url = queue.poll();
+
+        if(testing) {
+        	Elements wikiDatas = wf.readWikipedia(url);
+        	index.indexPage(url, wikiDatas);
+        	queueInternalLinks(wikiDatas);
+        	System.out.println(url);
+        	return url;
+        } else if (index.isIndexed(url) && !testing) {
+    		return null;
+        } else {
+    		Elements wikiDatas = wf.fetchWikipedia(url);
+    		index.indexPage(url, wikiDatas);
+    		queueInternalLinks(wikiDatas);
+    		return url;
+        }
 	}
 	
 	/**
@@ -65,7 +97,16 @@ public class WikiCrawler {
 	 */
 	// NOTE: absence of access level modifier means package-level
 	void queueInternalLinks(Elements paragraphs) {
-        // FILL THIS IN!
+        for (Element paragraph: paragraphs) {
+        	Elements linkNodes = paragraph.getElementsByAttributeValueStarting("href", "/wiki/");
+
+        	for (Element linkNode: linkNodes) {
+				String wikipedia = "https://en.wikipedia.org";
+				String innerHTML = linkNode.attr("href");
+				String link = wikipedia + innerHTML;
+				queue.offer(link);
+			}
+        }
 	}
 
 	public static void main(String[] args) throws IOException {
